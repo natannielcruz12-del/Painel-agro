@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2e6b3f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Painel Agro e Mercado</title>
+<style>
+:root{--bg:#eef1ec;--ink:#16211a;--mut:#5d6b60;--line:#cdd6cb;--field:#2e6b3f;--grain:#9a6b00;--up:#17803a;--dn:#c0392b;--sf:#f8faf6}
+@media(prefers-color-scheme:dark){:root{--bg:#141a15;--ink:#e6ede6;--mut:#92a095;--line:#2c382d;--field:#79c389;--grain:#e0b33f;--up:#4cd377;--dn:#ff7a6b;--sf:#1a221b}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px 40px}
+header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:18px 0 10px;flex-wrap:wrap}
+h1{font:700 1.35rem Georgia,"Iowan Old Style",serif;margin:0;color:var(--field)}
+.meta{color:var(--mut);font-size:.85rem}
+button,.btn{font:inherit;font-size:.85rem;border:1px solid var(--line);background:var(--sf);color:var(--ink);padding:6px 12px;border-radius:6px;cursor:pointer;text-decoration:none;display:inline-block}
+button:hover,.btn:hover{border-color:var(--field)}
+:focus-visible{outline:2px solid var(--field);outline-offset:2px}
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));border-top:3px solid var(--field);border-bottom:1px solid var(--line);margin-bottom:24px}
+.tick{padding:14px 12px 14px 0}
+.tick+.tick{border-left:1px solid var(--line);padding-left:14px}
+.tick small{color:var(--mut);display:block}
+.big{font:700 2.1rem/1.1 Georgia,serif;font-variant-numeric:tabular-nums}
+.chg{font-weight:600;font-variant-numeric:tabular-nums}
+.up{color:var(--up)}.dn{color:var(--dn)}
+.cols{display:grid;grid-template-columns:1.1fr .9fr;gap:32px}
+@media(max-width:760px){.cols{grid-template-columns:1fr;gap:8px}.tick+.tick{border-left:0;padding-left:0;border-top:1px solid var(--line)}}
+h2{font:700 1.05rem Georgia,serif;margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:.95rem}
+td,th{padding:8px 4px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{font-weight:500;color:var(--mut);font-size:.8rem}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+input{font:inherit;width:100px;padding:5px 6px;border:1px solid var(--line);border-radius:5px;background:var(--sf);color:var(--ink);text-align:right}
+.src a{color:var(--field);font-size:.8rem;margin-right:8px}
+.sub{font-size:.8rem;color:var(--mut)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.tabs button[aria-pressed=true]{background:var(--field);color:var(--bg);border-color:var(--field)}
+.news a{display:block;padding:10px 0;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none}
+.news a:hover b{text-decoration:underline}
+.news small{color:var(--mut)}
+.err{color:var(--dn);font-size:.85rem}
+.note{background:var(--sf);border-left:3px solid var(--grain);padding:8px 12px;font-size:.85rem;margin:8px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Painel Agro e Mercado</h1>
+  <div><span class="meta" id="upd">Carregando…</span> <button id="ref">Atualizar</button></div>
+</header>
+
+<section class="strip" aria-label="Dólar e Ibovespa">
+  <div class="tick"><small>Dólar (USD/BRL)</small><div class="big" id="usd">…</div><div class="chg" id="usdc"></div></div>
+  <div class="tick"><small>Ibovespa</small><div class="big" id="ibov">…</div><div class="chg" id="ibovc"></div></div>
+  <div class="tick"><small>Euro (EUR/BRL)</small><div class="big" id="eur">…</div><div class="chg" id="eurc"></div></div>
+</section>
+
+<div class="cols">
+<div>
+  <h2>Commodities</h2>
+  <p class="sub">Digite o preço do dia e ele fica salvo neste aparelho. Use os links para conferir a cotação.</p>
+  <table>
+    <thead><tr><th>Produto</th><th class="r">Preço</th><th>Fontes</th></tr></thead>
+    <tbody id="comm"></tbody>
+  </table>
+
+  <h2>Notícias</h2>
+  <div class="tabs" id="tabs"></div>
+  <div class="news" id="news">Carregando notícias…</div>
+</div>
+
+<div>
+  <h2>Maiores altas do dia</h2>
+  <table><tbody id="gain"><tr><td>Carregando…</td></tr></tbody></table>
+  <h2>Maiores quedas do dia</h2>
+  <table><tbody id="lose"><tr><td>Carregando…</td></tr></tbody></table>
+  <h2>Ações do agro</h2>
+  <table><tbody id="agro"><tr><td>Carregando…</td></tr></tbody></table>
+  <div class="note" id="tknote" hidden>Para ver altas, quedas e ações do agro, crie um token gratuito em brapi.dev e cole em <b>BRAPI_TOKEN</b> no início do script do arquivo index.html.</div>
+</div>
+</div>
+</div>
+
+<script>
+// ===== CONFIGURAÇÕES (edite aqui) =====
+const BRAPI_TOKEN = "";                       // token gratuito de brapi.dev
+const AGRO_TICKERS = ["SLCE3","SMTO3","RAIZ4","JBSS3","MRFG3","BEEF3","AGRO3","CAML3"];
+const FEEDS = [
+  {nome:"Canal Rural",  url:"https://www.canalrural.com.br/feed/"},
+  {nome:"Globo Rural",  url:"https://globorural.globo.com/rss/ultimas/feed.xml"}
+];
+const COMMODITIES = [
+  {id:"soja",  nome:"Soja",             un:"R$/saca 60 kg", links:[["B3","https://www.noticiasagricolas.com.br/cotacoes/soja/soja-b3-pregao-regular"],["Cepea","https://cepea.org.br/br/indicador/soja.aspx"]]},
+  {id:"milho", nome:"Milho",            un:"R$/saca 60 kg", links:[["B3","https://www.noticiasagricolas.com.br/cotacoes/milho"],["Cepea","https://cepea.org.br/br/indicador/milho.aspx"]]},
+  {id:"caroco",nome:"Caroço de algodão",un:"R$/tonelada",   links:[["Scot","https://www.scotconsultoria.com.br"],["Notícias Agrícolas","https://www.noticiasagricolas.com.br/cotacoes/algodao"]]},
+  {id:"boi",   nome:"Boi gordo",        un:"R$/arroba",     links:[["Cepea","https://cepea.org.br/br/indicador/boi-gordo.aspx"],["Notícias Agrícolas","https://www.noticiasagricolas.com.br/cotacoes/boi-gordo"]]}
+];
+const TOPICOS = {Todas:null, Soja:/soja/i, Milho:/milho/i, Algodão:/algod/i, Pecuária:/boi|gado|pecu[aá]ria|carne|bovin/i, Bolsa:/bolsa|ibovespa|d[oó]lar|a[cç][oõ]es|b3/i};
+// ======================================
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const nf = (v, d=2) => Number(v).toLocaleString("pt-BR",{minimumFractionDigits:d,maximumFractionDigits:d});
+const pct = v => { const n = Number(v); return `<span class="chg ${n>=0?"up":"dn"}">${n>=0?"▲":"▼"} ${nf(Math.abs(n))}%</span>`; };
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+};
+const getJSON = async url => { const r = await fetch(url); if(!r.ok) throw new Error(r.status); return r.json(); };
+const tk = () => BRAPI_TOKEN ? `&token=${BRAPI_TOKEN}` : "";
+
+async function cambio(){
+  try{
+    const d = await getJSON("https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL");
+    for(const [k,id] of [["USDBRL","usd"],["EURBRL","eur"]]){
+      $(id).textContent = "R$ " + nf(d[k].bid, 3);
+      $(id+"c").innerHTML = pct(d[k].pctChange);
+    }
+  }catch(e){ $("usd").innerHTML = '<span class="err">Sem dados</span>'; }
+}
+
+async function ibov(){
+  try{
+    const d = await getJSON(`https://brapi.dev/api/quote/%5EBVSP?x=1${tk()}`);
+    const q = d.results[0];
+    $("ibov").textContent = nf(q.regularMarketPrice, 0) + " pts";
+    $("ibovc").innerHTML = pct(q.regularMarketChangePercent);
+  }catch(e){ $("ibov").innerHTML = '<span class="err">Sem dados</span>'; }
+}
+
+function linhas(arr){
+  return arr.map(s => `<tr><td><b>${esc(s.stock||s.symbol)}</b><div class="sub">${esc((s.name||s.shortName||"").slice(0,28))}</div></td><td class="r">R$ ${nf(s.close ?? s.regularMarketPrice)}</td><td class="r">${pct(s.change ?? s.regularMarketChangePercent)}</td></tr>`).join("");
+}
+
+async function acoes(){
+  if(!BRAPI_TOKEN){ $("tknote").hidden = false; for(const id of ["gain","lose","agro"]) $(id).innerHTML = '<tr><td class="sub">Precisa do token gratuito.</td></tr>'; return; }
+  try{
+    const [g,l] = await Promise.all([
+      getJSON(`https://brapi.dev/api/quote/list?sortBy=change&sortOrder=desc&limit=5&type=stock${tk()}`),
+      getJSON(`https://brapi.dev/api/quote/list?sortBy=change&sortOrder=asc&limit=5&type=stock${tk()}`)
+    ]);
+    $("gain").innerHTML = linhas(g.stocks); $("lose").innerHTML = linhas(l.stocks);
+  }catch(e){ $("gain").innerHTML = $("lose").innerHTML = '<tr><td class="err">Não foi possível carregar.</td></tr>'; }
+  try{
+    const a = await getJSON(`https://brapi.dev/api/quote/${AGRO_TICKERS.join(",")}?x=1${tk()}`);
+    $("agro").innerHTML = linhas(a.results);
+  }catch(e){ $("agro").innerHTML = '<tr><td class="err">Não foi possível carregar.</td></tr>'; }
+}
+
+function commodities(){
+  $("comm").innerHTML = COMMODITIES.map(c => {
+    const v = store.get("p_"+c.id) || "", dt = store.get("d_"+c.id) || "";
+    return `<tr><td><b>${c.nome}</b><div class="sub">${c.un}${dt?" · atualizado em "+esc(dt):""}</div></td>
+    <td class="r"><input inputmode="decimal" data-id="${c.id}" value="${esc(v)}" placeholder="0,00" aria-label="Preço de ${c.nome}"></td>
+    <td class="src">${c.links.map(l=>`<a href="${l[1]}" target="_blank" rel="noopener">${l[0]}</a>`).join("")}</td></tr>`;
+  }).join("");
+  document.querySelectorAll("#comm input").forEach(i => i.addEventListener("change", () => {
+    store.set("p_"+i.dataset.id, i.value);
+    store.set("d_"+i.dataset.id, new Date().toLocaleDateString("pt-BR"));
+    commodities();
+  }));
+}
+
+let noticias = [], filtro = "Todas";
+function mostrarNoticias(){
+  const re = TOPICOS[filtro];
+  const lista = noticias.filter(n => !re || re.test(n.titulo)).slice(0,14);
+  $("news").innerHTML = lista.length ? lista.map(n => `<a href="${esc(n.link)}" target="_blank" rel="noopener"><b>${esc(n.titulo)}</b><br><small>${esc(n.fonte)} · ${esc(n.data)}</small></a>`).join("") : '<p class="sub">Nenhuma notícia sobre este tema agora.</p>';
+}
+function abas(){
+  $("tabs").innerHTML = Object.keys(TOPICOS).map(t => `<button aria-pressed="${t===filtro}" data-t="${t}">${t}</button>`).join("");
+  document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { filtro = b.dataset.t; abas(); mostrarNoticias(); });
+}
+async function news(){
+  const all = [];
+  await Promise.all(FEEDS.map(async f => {
+    try{
+      const d = await getJSON("https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(f.url));
+      (d.items||[]).forEach(i => all.push({titulo:i.title, link:i.link, fonte:f.nome, ts:new Date(i.pubDate.replace(" ","T")+"Z").getTime()||0, data:(i.pubDate||"").slice(0,10).split("-").reverse().join("/")}));
+    }catch(e){}
+  }));
+  noticias = all.sort((a,b)=>b.ts-a.ts);
+  if(!noticias.length){ $("news").innerHTML = '<p class="err">Não foi possível carregar as notícias. Tente atualizar.</p>'; return; }
+  mostrarNoticias();
+}
+
+async function tudo(){
+  $("upd").textContent = "Atualizando…";
+  await Promise.all([cambio(), ibov(), acoes(), news()]);
+  $("upd").textContent = "Atualizado às " + new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+}
+$("ref").onclick = tudo;
+commodities(); abas(); tudo();
+setInterval(tudo, 5*60*1000);
+</script>
+</body>
+</html>
